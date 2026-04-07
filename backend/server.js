@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const { Pool } = require("pg");
+require("dotenv").config();
 
 const app = express();
 
@@ -7,39 +9,93 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Temporary database (array)
-let reservations = [];
+// 🔥 Supabase PostgreSQL Pooler Connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
-// TEST ROUTE (to check if server works)
+// TEST ROUTE
 app.get("/", (req, res) => {
-  res.send("Backend is running 🚀");
+  res.send("Backend connected to Supabase 🚀");
 });
 
-// GET all reservations
-app.get("/api/reservations", (req, res) => {
-  res.json(reservations);
+// ✅ GET reservations
+app.get("/api/reservations", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM reservations ORDER BY id DESC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error fetching reservations" });
+  }
 });
 
-// POST new reservation
-app.post("/api/reservations", (req, res) => {
+// ✅ POST reservation (with validation)
+app.post("/api/reservations", async (req, res) => {
   const { name, guests } = req.body;
 
-  if (!name || !guests) {
-    return res.status(400).json({ message: "Missing fields" });
+  const guestsNum = Number(guests);
+
+  // 🔥 VALIDATION
+  if (!name || !name.trim() || guestsNum <= 0 || !Number.isInteger(guestsNum)) {
+    return res.status(400).json({ message: "Invalid input" });
   }
 
-  const newReservation = {
-    id: Date.now(),
-    name,
-    guests,
-  };
+  try {
+    const result = await pool.query(
+      "INSERT INTO reservations (name, guests) VALUES ($1, $2) RETURNING *",
+      [name.trim(), guestsNum]
+    );
 
-  reservations.push(newReservation);
+    res.json({
+      message: "Reservation added!",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error saving reservation" });
+  }
+});
 
-  res.json({
-    message: "Reservation added!",
-    data: newReservation,
-  });
+// ✅ DELETE reservation
+app.delete("/api/reservations/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM reservations WHERE id = $1", [id]);
+
+    res.json({ message: "Reservation deleted!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error deleting reservation" });
+  }
+});
+
+// ✅ PUT (Edit) reservation
+app.put("/api/reservations/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, guests } = req.body;
+
+  const guestsNum = Number(guests);
+
+  if (!name || !name.trim() || guestsNum <= 0 || !Number.isInteger(guestsNum)) {
+    return res.status(400).json({ message: "Invalid input" });
+  }
+
+  try {
+    const result = await pool.query(
+      "UPDATE reservations SET name = $1, guests = $2 WHERE id = $3 RETURNING *",
+      [name.trim(), guestsNum, id]
+    );
+
+    res.json({ message: "Reservation updated!", data: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error updating reservation" });
+  }
 });
 
 // Start server

@@ -8,6 +8,16 @@ function App() {
   const [name, setName] = useState("");
   const [guests, setGuests] = useState("");
 
+  // DELETE MODAL STATE 🔥
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+
+  // EDIT MODAL STATE
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editGuests, setEditGuests] = useState("");
+
   // RESERVATIONS STATE
   const [reservations, setReservations] = useState([]);
 
@@ -19,11 +29,12 @@ function App() {
   // FETCH RESERVATIONS
   const fetchReservations = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/reservations");
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/reservations`);
       const data = await res.json();
-      setReservations(data);
+      setReservations(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching reservations:", err);
+      setReservations([]);
     }
   };
 
@@ -32,16 +43,35 @@ function App() {
     fetchReservations();
   }, []);
 
+  // 🔥 OPEN DELETE MODAL
+  const handleDelete = (id) => {
+    setSelectedId(id);
+    setShowDeleteModal(true);
+  };
+
+  // 🔥 CONFIRM DELETE
+  const confirmDelete = async () => {
+    try {
+      await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/reservations/${selectedId}`, {
+        method: "DELETE",
+      });
+
+      fetchReservations();
+      setShowDeleteModal(false);
+      setSelectedId(null);
+    } catch (err) {
+      console.error("Error deleting reservation:", err);
+    }
+  };
+
   // SUBMIT RESERVATION
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:5000/api/reservations", {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/reservations`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, guests }),
       });
 
@@ -50,7 +80,6 @@ function App() {
 
       alert("Reservation submitted!");
 
-      // REFRESH DATA
       await fetchReservations();
 
       setShowModal(false);
@@ -60,6 +89,28 @@ function App() {
       console.error(err);
     }
   };
+
+  const handleEdit = (res) => {
+  setEditId(res.id);
+  setEditName(res.name);
+  setEditGuests(res.guests);
+  setShowEditModal(true);
+};
+
+const confirmEdit = async () => {
+  try {
+    await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/reservations/${editId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName, guests: editGuests }),
+    });
+
+    fetchReservations();
+    setShowEditModal(false);
+  } catch (err) {
+    console.error("Error editing reservation:", err);
+  }
+};
 
   // STALL DATA
   const stalls = [
@@ -186,13 +237,39 @@ function App() {
             {reservations.map((res) => (
               <li key={res.id}>
                 {res.name} - {res.guests} guests
+                <button
+                  onClick={() => handleDelete(res.id)}
+                  style={{
+                    marginLeft: "10px",
+                    background: "red",
+                    color: "white",
+                    border: "none",
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => handleEdit(res)}
+                  style={{
+                    marginLeft: "10px",
+                    background: "#1976d2",
+                    color: "white",
+                    border: "none",
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Edit
+                </button>
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      {/* MODAL */}
+      {/* RESERVATION MODAL */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
@@ -211,18 +288,71 @@ function App() {
                 type="number"
                 placeholder="Number of Guests"
                 value={guests}
+                min="1"
                 onChange={(e) => setGuests(e.target.value)}
                 required
               />
 
-              <button type="submit">Reserve</button>
-              <button type="button" onClick={() => setShowModal(false)}>
+              <button type="submit" className="btn-primary">Reserve</button>
+              <button type="button" className="btn-cancel" onClick={() => setShowModal(false)}>
                 Cancel
               </button>
             </form>
           </div>
         </div>
       )}
+
+      {/* 🔥 CUSTOM DELETE MODAL */}
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Delete Reservation</h2>
+            <p>Are you sure you want to delete this reservation?</p>
+
+            <div className="modal-actions">
+              <button className="btn-delete" onClick={confirmDelete}>
+                Delete
+              </button>
+
+              <button
+                className="btn-cancel"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {showEditModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Edit Reservation</h2>
+
+            <input
+              type="text"
+              placeholder="Name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+            />
+            <input
+              type="number"
+              placeholder="Guests"
+              value={editGuests}
+              min="1"
+              onChange={(e) => setEditGuests(e.target.value)}
+            />
+
+            <div className="modal-actions">
+              <button className="btn-primary" onClick={confirmEdit}>Save</button>
+              <button className="btn-cancel" onClick={() => setShowEditModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }
