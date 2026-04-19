@@ -6,7 +6,12 @@ require("dotenv").config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://hidden-ridge-food-park-website.vercel.app"
+  ]
+}));
 app.use(express.json());
 
 // Supabase PostgreSQL Connection
