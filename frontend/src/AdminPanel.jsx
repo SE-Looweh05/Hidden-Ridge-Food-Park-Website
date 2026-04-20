@@ -9,6 +9,7 @@ function AdminPanel() {
   const [pinError, setPinError] = useState(false);
 
   const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -17,6 +18,7 @@ function AdminPanel() {
   const [editGuests, setEditGuests] = useState("");
 
   const fetchReservations = async () => {
+    setLoading(true);
     try {
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/reservations`);
       const data = await res.json();
@@ -24,6 +26,8 @@ function AdminPanel() {
     } catch (err) {
       console.error("Error fetching reservations:", err);
       setReservations([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -113,13 +117,19 @@ function AdminPanel() {
       <div className="admin-content">
         <h2>Reservations</h2>
         <p className="admin-count">
-          {reservations.length} reservation{reservations.length !== 1 ? "s" : ""} total
-          {!isAuthenticated && (
+          {!loading && (
+            <>
+              {reservations.length} reservation{reservations.length !== 1 ? "s" : ""} total
+            </>
+          )}
+          {!isAuthenticated && !loading && (
             <span className="admin-view-only"> — View Only</span>
           )}
         </p>
 
-        {reservations.length === 0 ? (
+        {loading ? (
+          <p className="admin-empty">Loading reservations...</p>
+        ) : reservations.length === 0 ? (
           <p className="admin-empty">No reservations yet.</p>
         ) : (
           <table className="admin-table">
