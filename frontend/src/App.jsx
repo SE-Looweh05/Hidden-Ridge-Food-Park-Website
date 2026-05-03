@@ -12,6 +12,8 @@ function App() {
   const [time, setTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // SCROLL-BASED OPACITY STATE
   const [heroOpacity, setHeroOpacity] = useState(1);
@@ -186,7 +188,9 @@ function App() {
       const data = await res.json();
 
       if (!res.ok) {
-        showToast(data.message || "Something went wrong. Please try again.", "error");
+        setErrorMessage(data.message || "Something went wrong. Please try again.");
+        setShowModal(false);
+        setShowErrorModal(true);
         return;
       }
 
@@ -497,6 +501,23 @@ function App() {
               onClick={() => setShowConfirmModal(false)}
             >
               Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ERROR MODAL */}
+      {showErrorModal && (
+        <div className="modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="modal">
+            <div className="confirm-icon">⚠️</div>
+            <h2>Oops!</h2>
+            <p style={{ opacity: 1, marginBottom: "20px" }}>{errorMessage}</p>
+            <button
+              className="btn-primary"
+              onClick={() => setShowErrorModal(false)}
+            >
+              Got it
             </button>
           </div>
         </div>
