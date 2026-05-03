@@ -1,12 +1,17 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import "./style.css";
 
 function App() {
 
   const [showModal, setShowModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmedReservation, setConfirmedReservation] = useState(null);
   const [name, setName] = useState("");
   const [guests, setGuests] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toasts, setToasts] = useState([]);
 
   // SCROLL-BASED OPACITY STATE
   const [heroOpacity, setHeroOpacity] = useState(1);
@@ -15,7 +20,6 @@ function App() {
   const [endOpacity, setEndOpacity] = useState(0);
 
   // CONTENT VISIBILITY STATE
-  const [heroContentVisible, setHeroContentVisible] = useState(false);
   const [cafeContentVisible, setCafeContentVisible] = useState(false);
   const [stallsContentVisible, setStallsContentVisible] = useState(false);
   const [endContentVisible, setEndContentVisible] = useState(false);
@@ -25,18 +29,83 @@ function App() {
   const [logoLoaded, setLogoLoaded] = useState(false);
   const [buttonsLoaded, setButtonsLoaded] = useState(false);
 
+  // TOAST HELPER
+  const showToast = (message, type = "success") => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3500);
+  };
+
+  // DATE HELPERS
+  const getTodayString = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
+
+  const isMonday = (dateStr) => {
+    if (!dateStr) return false;
+    const day = new Date(dateStr + "T00:00:00").getDay();
+    return day === 1;
+  };
+
+  const getAvailableTimes = () => {
+    const times = [];
+    const now = new Date();
+    const selectedDate = date;
+    const todayStr = getTodayString();
+    const isToday = selectedDate === todayStr;
+
+    for (let hour = 15; hour <= 21; hour++) {
+      for (let min = 0; min < 60; min += 30) {
+        if (hour === 21 && min > 0) break;
+
+        const timeStr = `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+
+        if (isToday) {
+          const slotTime = new Date();
+          slotTime.setHours(hour, min, 0, 0);
+          const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+          if (slotTime < twoHoursFromNow) continue;
+        }
+
+        times.push(timeStr);
+      }
+    }
+    return times;
+  };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "";
+    const [hour, min] = timeStr.split(":");
+    const h = parseInt(hour);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const displayHour = h > 12 ? h - 12 : h === 0 ? 12 : h;
+    return `${displayHour}:${min} ${ampm}`;
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   // INITIAL PAGE LOAD SEQUENCE
   useEffect(() => {
     const bgTimer = setTimeout(() => setBgLoaded(true), 500);
     const logoTimer = setTimeout(() => setLogoLoaded(true), 1000);
     const btnTimer = setTimeout(() => setButtonsLoaded(true), 2200);
-    const heroTimer = setTimeout(() => setHeroContentVisible(true), 2200);
 
     return () => {
       clearTimeout(bgTimer);
       clearTimeout(logoTimer);
       clearTimeout(btnTimer);
-      clearTimeout(heroTimer);
     };
   }, []);
 
@@ -46,26 +115,21 @@ function App() {
       const scrollY = window.scrollY;
       const vh = window.innerHeight;
 
-      // HERO: fade out from 0 to 60% of first section
       const heroFade = Math.max(0, 1 - (scrollY / (vh * 0.6)));
       setHeroOpacity(heroFade);
-      setHeroContentVisible(heroFade > 0.3 && buttonsLoaded);
 
-      // CAFE: fade in at 40%-100% of section 1, fade out at 40%-100% of section 2
       const cafeFadeIn = Math.min(1, Math.max(0, (scrollY - vh * 0.4) / (vh * 0.6)));
       const cafeFadeOut = Math.max(0, 1 - Math.max(0, (scrollY - vh * 1.4) / (vh * 0.6)));
       const cafeVal = Math.min(cafeFadeIn, cafeFadeOut);
       setCafeOpacity(cafeVal);
       setCafeContentVisible(cafeVal > 0.6);
 
-      // STALLS: fade in at 60%-100% of section 2, fade out at 40%-100% of section 3
       const stallsFadeIn = Math.min(1, Math.max(0, (scrollY - vh * 1.6) / (vh * 0.5)));
       const stallsFadeOut = Math.max(0, 1 - Math.max(0, (scrollY - vh * 2.4) / (vh * 0.6)));
       const stallsVal = Math.min(stallsFadeIn, stallsFadeOut);
       setStallsOpacity(stallsVal);
       setStallsContentVisible(stallsVal > 0.6);
 
-      // END: fade in at 60%-100% of section 3
       const endFadeIn = Math.min(1, Math.max(0, (scrollY - vh * 2.6) / (vh * 0.5)));
       setEndOpacity(endFadeIn);
       setEndContentVisible(endFadeIn > 0.6);
@@ -73,7 +137,7 @@ function App() {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [buttonsLoaded]);
+  }, []);
 
   // SCROLL TO STALLS
   const scrollToMenu = (e) => {
@@ -89,34 +153,55 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const guestsNum = Number(guests);
+
     if (!name.trim() || guestsNum <= 0 || !Number.isInteger(guestsNum)) {
-      alert("Please enter a valid name and a positive number of guests.");
+      showToast("Please enter a valid name and number of guests.", "error");
       return;
     }
 
+    if (!date) {
+      showToast("Please select a date.", "error");
+      return;
+    }
+
+    if (isMonday(date)) {
+      showToast("We are closed on Mondays. Please select another date.", "error");
+      return;
+    }
+
+    if (!time) {
+      showToast("Please select a time.", "error");
+      return;
+    }
+    console.log("Submitting:", { name, guests, date, time });
     setIsSubmitting(true);
 
     try {
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/reservations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, guests }),
+        body: JSON.stringify({ name, guests, date, time }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.message || "Something went wrong. Please try again.");
+        showToast(data.message || "Something went wrong. Please try again.", "error");
         return;
       }
 
-      alert("Reservation submitted!");
+      // Show confirmation modal
+      setConfirmedReservation({ name, guests, date, time });
       setShowModal(false);
+      setShowConfirmModal(true);
       setName("");
       setGuests("");
+      setDate("");
+      setTime("");
+
     } catch (err) {
       console.error(err);
-      alert("Something went wrong. Please try again.");
+      showToast("Something went wrong. Please try again.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -132,8 +217,22 @@ function App() {
     { id: 6, img: "/images/stall6.png", desc: "Filipino favorites including sizzling steaks, kare-kare, sisig, bagnet, and comforting sinigang for hearty meals." }
   ];
 
+  const availableTimes = date && !isMonday(date) ? getAvailableTimes() : [];
+
   return (
     <>
+      {/* TOAST CONTAINER */}
+      <div className="toast-container">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`toast toast-${toast.type}`}
+          >
+            {toast.type === "success" ? "✅" : "❌"} {toast.message}
+          </div>
+        ))}
+      </div>
+
       <div className="scroll-container">
 
         {/* BLACK BASE */}
@@ -149,16 +248,10 @@ function App() {
         />
 
         {/* CAFE BG */}
-        <div
-          className="fixed-layer cafe-bg"
-          style={{ opacity: cafeOpacity }}
-        />
+        <div className="fixed-layer cafe-bg" style={{ opacity: cafeOpacity }} />
 
         {/* END BG */}
-        <div
-          className="fixed-layer end-bg"
-          style={{ opacity: endOpacity }}
-        />
+        <div className="fixed-layer end-bg" style={{ opacity: endOpacity }} />
 
         {/* HERO CONTENT */}
         <div
@@ -174,10 +267,7 @@ function App() {
               src="/images/logo-hr.png"
               className="logo"
               alt="Hidden Ridge Logo"
-              style={{
-                opacity: logoLoaded ? 1 : 0,
-                transition: "opacity 1s ease",
-              }}
+              style={{ opacity: logoLoaded ? 1 : 0, transition: "opacity 1s ease" }}
             />
             <button
               className="cta-btn"
@@ -235,22 +325,14 @@ function App() {
           }}
         >
           <div className="stalls-section">
-
-            {/* BG IMAGE — behind everything, fades in first */}
             <img
               src="/images/fs-img.png"
               alt=""
               className={`stalls-bg-img ${stallsOpacity > 0.05 ? "img-visible" : ""}`}
             />
-
-            {/* TITLE — absolutely positioned */}
-            <h2
-              className={`stalls-title ${stallsContentVisible ? "content-rise" : "content-hidden"}`}
-            >
+            <h2 className={`stalls-title ${stallsContentVisible ? "content-rise" : "content-hidden"}`}>
               Explore<br />Our Food<br />Stalls
             </h2>
-
-            {/* STALL GRID — right side */}
             <div className="stall-grid-wrapper">
               <div className="stall-grid">
                 {stalls.map((stall, index) => (
@@ -271,7 +353,6 @@ function App() {
                 ))}
               </div>
             </div>
-
           </div>
         </div>
 
@@ -284,7 +365,6 @@ function App() {
           }}
         >
           <div className="end-content">
-            {/* LINE fades with content, not background */}
             <div
               className="end-line"
               style={{
@@ -331,7 +411,34 @@ function App() {
                 min="1"
                 onChange={(e) => setGuests(e.target.value)}
                 required
-              />              
+              />
+              <input
+                type="date"
+                value={date}
+                min={getTodayString()}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  setTime("");
+                }}
+                required
+              />
+              {date && isMonday(date) && (
+                <p className="field-error">We are closed on Mondays. Please select another date.</p>
+              )}
+              <select
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                required
+                disabled={!date || isMonday(date) || availableTimes.length === 0}
+              >
+                <option value="">Select a time</option>
+                {availableTimes.map((t) => (
+                  <option key={t} value={t}>{formatTime(t)}</option>
+                ))}
+              </select>
+              {date && !isMonday(date) && availableTimes.length === 0 && (
+                <p className="field-error">No available times for today. Please select another date.</p>
+              )}
               <button
                 type="submit"
                 className="btn-primary"
@@ -356,6 +463,41 @@ function App() {
                 Cancel
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRMATION MODAL */}
+      {showConfirmModal && confirmedReservation && (
+        <div className="modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="modal">
+            <div className="confirm-icon">🎉</div>
+            <h2>Reservation Confirmed!</h2>
+            <div className="confirm-details">
+              <div className="confirm-row">
+                <span className="confirm-label">Name: </span>
+                <span className="confirm-value">{confirmedReservation.name}</span>
+              </div>
+              <div className="confirm-row">
+                <span className="confirm-label">Guests: </span>
+                <span className="confirm-value">{confirmedReservation.guests}</span>
+              </div>
+              <div className="confirm-row">
+                <span className="confirm-label">Date: </span>
+                <span className="confirm-value">{formatDate(confirmedReservation.date)}</span>
+              </div>
+              <div className="confirm-row">
+                <span className="confirm-label">Time: </span>
+                <span className="confirm-value">{formatTime(confirmedReservation.time)}</span>
+              </div>
+            </div>
+            <p className="confirm-note">See you at Hidden Ridge! 🍽️</p>
+            <button
+              className="btn-primary"
+              onClick={() => setShowConfirmModal(false)}
+            >
+              Done
+            </button>
           </div>
         </div>
       )}

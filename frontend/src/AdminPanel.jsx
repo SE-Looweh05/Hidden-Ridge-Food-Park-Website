@@ -138,6 +138,8 @@ function AdminPanel() {
                 <th>#</th>
                 <th>Name</th>
                 <th>Guests</th>
+                <th>Date</th>
+                <th>Time</th>
                 {isAuthenticated && <th>Actions</th>}
               </tr>
             </thead>
@@ -147,20 +149,12 @@ function AdminPanel() {
                   <td>{index + 1}</td>
                   <td>{res.name}</td>
                   <td>{res.guests}</td>
+                  <td>{res.date ? new Date(res.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}</td>
+                  <td>{res.time ? (() => { const [h, m] = res.time.split(":"); const hour = parseInt(h); return `${hour > 12 ? hour - 12 : hour}:${m} ${hour >= 12 ? "PM" : "AM"}`; })() : "—"}</td>
                   {isAuthenticated && (
                     <td>
-                      <button
-                        className="admin-btn-edit"
-                        onClick={() => handleEdit(res)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="admin-btn-delete"
-                        onClick={() => handleDelete(res.id)}
-                      >
-                        Delete
-                      </button>
+                      <button className="admin-btn-edit" onClick={() => handleEdit(res)}>Edit</button>
+                      <button className="admin-btn-delete" onClick={() => handleDelete(res.id)}>Delete</button>
                     </td>
                   )}
                 </tr>
