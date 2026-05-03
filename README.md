@@ -15,27 +15,17 @@ PostgreSQL database, deployed on Vercel (frontend) and Render (backend).
 
 ## 🔧 Features
 
-- Modern React frontend powered by Vite
-- Dynamic food stall rendering with reusable components
-- Table reservation system with modal form and submission loading state
-- **Date and time picker** with business hours enforcement (Tue–Sat, 3:00 PM–9:00 PM)
-- Monday reservations blocked automatically
-- Same-day bookings restricted to +2 hours from current time
-- **Reservation confirmation modal** showing name, guests, date, and time after submission
-- **Toast notifications** for inline form errors (top right, auto-dismiss)
-- **Error modal** for rate limit and failed submission feedback
-- Full CRUD reservation system (Create, Read, Update, Delete)
-- Rate limiting — max 3 reservations per IP per hour to prevent spam
-- Admin panel with public view-only mode and password-protected edit/delete
-- Admin login modal — Actions column only appears after authentication
-- Live sync with Supabase PostgreSQL database
+- Full-stack reservation system with CRUD functionality
+- Date & time picker with business rules enforcement
+  - Tue–Sat, 3:00 PM–9:00 PM
+  - Monday closed
+  - Same-day booking requires +2 hour lead time
+- Rate limiting (3 reservations per IP/hour) to prevent abuse
+- Admin panel with authentication (view-only → edit/delete after login)
+- Real-time sync with Supabase PostgreSQL
 - REST API with input validation and error handling
-- Responsive UI for desktop, tablet, and mobile
-- Parallax scroll and smooth page transitions
-- UI animations (hover effects, staggered loading, fade transitions)
-- Custom favicon
-- Deployed frontend (Vercel) and backend (Render)
-- Supabase keep-alive ping to prevent free tier database pausing
+- Toast notifications (inline errors) + modal feedback system
+- Fully responsive UI with animations and smooth transitions
 
 ---
 
@@ -52,17 +42,13 @@ PostgreSQL database, deployed on Vercel (frontend) and Render (backend).
 
 ## 📌 Key Learnings
 
-- Transitioned from static website to full-stack architecture
-- Built REST API with full CRUD functionality
+- Built and deployed a full-stack application end-to-end
+- Designed and implemented a REST API with validation
 - Integrated Supabase PostgreSQL for cloud database management
-- Managed frontend state using React hooks
 - Implemented client-server communication using Fetch API
-- Built protected admin system with authentication logic
-- Applied rate limiting to prevent spam and abuse
-- Implemented date/time validation with business hours logic
-- Learned deployment workflows using Vercel and Render
-- Secured sensitive credentials using environment variables
-- Improved UI/UX with animations and responsive design principles
+- Built a protected admin system with authentication logic
+- Applied rate limiting and business logic validation
+- Deployed production apps using Vercel and Render
 
 ---
 
