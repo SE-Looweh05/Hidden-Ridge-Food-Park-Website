@@ -17,16 +17,25 @@ PostgreSQL database, deployed on Vercel (frontend) and Render (backend).
 
 - Modern React frontend powered by Vite
 - Dynamic food stall rendering with reusable components
-- Table reservation system with modal form and loading state
+- Table reservation system with modal form and submission loading state
+- **Date and time picker** with business hours enforcement (Tue–Sat, 3:00 PM–9:00 PM)
+- Monday reservations blocked automatically
+- Same-day bookings restricted to +2 hours from current time
+- **Reservation confirmation modal** showing name, guests, date, and time after submission
+- **Toast notifications** for inline form errors (top right, auto-dismiss)
+- **Error modal** for rate limit and failed submission feedback
 - Full CRUD reservation system (Create, Read, Update, Delete)
-- Rate limiting (max 3 reservations per IP/hour)
-- Admin panel with protected login and edit/delete access
+- Rate limiting — max 3 reservations per IP per hour to prevent spam
+- Admin panel with public view-only mode and password-protected edit/delete
+- Admin login modal — Actions column only appears after authentication
 - Live sync with Supabase PostgreSQL database
 - REST API with input validation and error handling
 - Responsive UI for desktop, tablet, and mobile
 - Parallax scroll and smooth page transitions
-- UI animations (hover effects, staggered loading)
+- UI animations (hover effects, staggered loading, fade transitions)
+- Custom favicon
 - Deployed frontend (Vercel) and backend (Render)
+- Supabase keep-alive ping to prevent free tier database pausing
 
 ---
 
@@ -49,7 +58,10 @@ PostgreSQL database, deployed on Vercel (frontend) and Render (backend).
 - Managed frontend state using React hooks
 - Implemented client-server communication using Fetch API
 - Built protected admin system with authentication logic
+- Applied rate limiting to prevent spam and abuse
+- Implemented date/time validation with business hours logic
 - Learned deployment workflows using Vercel and Render
+- Secured sensitive credentials using environment variables
 - Improved UI/UX with animations and responsive design principles
 
 ---
@@ -73,10 +85,10 @@ PostgreSQL database, deployed on Vercel (frontend) and Render (backend).
 ## 🚧 Future Plans
 
 - Clickable food stall cards with full menu modal
-- Form validation with visible inline error messages
 - Improved mobile layout for food stalls section
-- Toast notifications instead of browser alerts
-- Add date and time selection for reservations to support scheduled bookings
+- Search and filter reservations in admin panel
+- Export reservations as CSV from admin panel
+- Move admin authentication to backend with JWT tokens
 
 ---
 
@@ -158,6 +170,8 @@ Hidden-Ridge-Food-Park-Website/
 - Cafe section uses CSS text overlay on a full-background image
 - Transitioned from static HTML/CSS/JS → React (Vite) + Node.js
 - Database upgraded from in-memory storage → live Supabase PostgreSQL
+- Reservation system upgraded with date/time picker, business hours validation,
+  confirmation modal, toast notifications, and error modal
 - Scroll system rebuilt from standard scrolling → custom parallax fade using
   `window.scrollY` and fixed CSS layers
 - Admin panel separated into its own route via React Router DOM
